@@ -2,10 +2,12 @@
 
 ## Setup
 1. `composer install && npm install && npm run build`
-2. `cp .env.example .env && php artisan key:generate`; configure MySQL; `QUEUE_CONNECTION=database`
-3. `php artisan migrate:fresh --seed`
-4. Run: `php artisan serve`, `php artisan queue:work`, `php artisan schedule:work`
-5. Tests: create a `ticket_system_test` database, then `php artisan test`
+2. Run `cp .env.example .env` ; 
+3. Run `php artisan key:generate`
+4. Create database named `ticket_management`
+5. `php artisan migrate:fresh --seed`
+6. Run: `php artisan serve`, `php artisan queue:work`, `php artisan schedule:work`
+7. Tests: create a `ticket_system_test` database, then `php artisan test`
 
 Seeded users (password `password`): admin@example.com, agent1@example.com, agent2@example.com, customer1@example.com, customer2@example.com
 
