@@ -12,8 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tickets', function (Blueprint $table) {
-            $table->id();
+             $table->id();
             $table->string('ticket_number', 20)->unique();
+            $table->string('external_ref', 100)->nullable()->unique(); // used by CSV import for de-duplication
             $table->string('subject');
             $table->text('description');
             $table->string('priority', 20);
@@ -22,7 +23,8 @@ return new class extends Migration
             $table->foreignId('customer_id')->constrained('users');
             $table->foreignId('assigned_agent_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('sla_due_at')->nullable();
-            $table->timestamp('sla_breached_at')->nullable();
+            $table->timestamp('sla_warned_at')->nullable();   // "approaching" notification sent
+            $table->timestamp('sla_breached_at')->nullable(); // breach detected by the scheduler
             $table->timestamp('escalated_at')->nullable();
             $table->timestamp('resolved_at')->nullable();
             $table->timestamps();
@@ -32,6 +34,7 @@ return new class extends Migration
             $table->index(['priority', 'status']);
             $table->index(['customer_id', 'created_at']);
             $table->index('created_at');
+            $table->index('category_id');
             $table->fullText(['subject', 'description']); 
         });
     }

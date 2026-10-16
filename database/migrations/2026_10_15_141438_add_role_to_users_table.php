@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->string('role', 20)->default('customer')->after('password')->index();
             $table->boolean('is_available')->default(true)->after('role');
+            $table->timestamp('last_assigned_at')->nullable()->after('is_available');
         });
     }
 
@@ -23,7 +24,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['role', 'is_available']);
+            $table->dropColumn(['role', 'is_available','last_assigned_at']);
         });
     }
 };
