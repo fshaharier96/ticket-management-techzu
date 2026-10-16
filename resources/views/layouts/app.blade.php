@@ -27,6 +27,17 @@
                 </header>
             @endisset
 
+            @if (session('success') || session('error'))
+                <div class="mx-auto max-w-7xl space-y-2 px-4 pt-4 sm:px-6 lg:px-8">
+                    @if (session('success'))
+                        <div class="rounded-md bg-green-100 p-3 text-sm text-green-800">{{ session('success') }}</div>
+                    @endif
+                    @if (session('error'))
+                        <div class="rounded-md bg-red-100 p-3 text-sm text-red-800">{{ session('error') }}</div>
+                    @endif
+                </div>
+            @endif
+
             <!-- Page Content -->
             <main>
                 {{ $slot }}
