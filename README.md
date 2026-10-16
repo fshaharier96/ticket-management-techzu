@@ -1,66 +1,51 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Support Ticket & SLA Management System (Laravel)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Setup
+1. `composer install && npm install && npm run build`
+2. `cp .env.example .env && php artisan key:generate`; configure MySQL; `QUEUE_CONNECTION=database`
+3. `php artisan migrate:fresh --seed`
+4. Run: `php artisan serve`, `php artisan queue:work`, `php artisan schedule:work`
+5. Tests: create a `ticket_system_test` database, then `php artisan test`
 
-## About Laravel
+Seeded users (password `password`): admin@example.com, agent1@example.com, agent2@example.com, customer1@example.com, customer2@example.com
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Features
+Ticket CRUD · yearly ticket numbers (TKT-2026-000001) · Admin/Agent/Customer roles · manual + automatic assignment ·
+safe concurrent accept · conversation with internal notes · private attachments · SLA by priority with business hours ·
+scheduled warning + escalation · queued e-mail/database notifications · search/filter/pagination · chunked CSV import ·
+dashboard · full activity history
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Design decisions
+**Authorization.** Role enum on `users`; Policies (`TicketPolicy`, `AttachmentPolicy`) checked in controllers; list queries scoped with `Ticket::visibleTo()`; form requests only accept fields the role may edit. Customers can never read internal notes (excluded in the query) or their attachments (policy).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+**Ticket numbers.** `ticket_sequences(year, last_number)`; the row is locked (`lockForUpdate`) inside the transaction that creates the ticket. Unique index as a safety net. Format `TKT-YYYY-%06d`, which grows past six digits automatically.
 
-## Learning Laravel
+**Concurrent assignment.** `UPDATE tickets SET assigned_agent_id = ? WHERE id = ? AND assigned_agent_id IS NULL`. The affected-row count decides the winner; the loser receives a clear message. No dependence on in-memory state.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+**Automatic assignment.** Fewest active tickets among available agents; ties go to the agent assigned longest ago (`last_assigned_at`), which gives round-robin behaviour. Optional on creation via `TICKETS_AUTO_ASSIGN`.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+**SLA.** `sla_policies` maps priority → business minutes (data, not code). `sla_due_at` is stored on the ticket; *within / approaching / breached* are derived from it, so filters, the dashboard and the scheduler are indexed range queries. Changing priority recalculates from the original creation time.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**Business hours.** `config/sla.php` (days + open/close). `BusinessHoursCalculator` consumes the minutes day by day, skipping closed time. Example: Critical (2h) created Thursday 17:00 → due Sunday 10:00.
 
-## Laravel Sponsors
+**Escalation.** `tickets:check-sla` runs every 5 minutes. Each transition (warned, breached) is claimed with a conditional UPDATE, so overlapping runs cannot double-escalate. Escalation sets `escalated_at`, writes history, and notifies the agent and admins.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+**Notifications.** Domain events → one subscriber → one queued `TicketNotification` (mail + database), dispatched after commit. Requests never wait for SMTP.
 
-### Premium Partners
+**CSV import.** Queued job; streams with `SplFileObject`; 500-row chunks; per-row validation; duplicates detected via `external_ref` (pre-check + unique index with `insertOrIgnore`); invalid rows stored in `import_errors` and downloadable.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+**Performance.** Indexes match real queries (see the tickets migration); lists are paginated; relations are eager loaded; the dashboard counters come from a single conditional-aggregate query; a test guards against N+1.
 
-## Contributing
+## Testing strategy
+Unit: business-hours calculator. Feature: ticket creation/SLA, numbering, authorization (including internal notes and file downloads), assignment + concurrency guard, escalation idempotency, CSV import, search/filters/N+1.
+I focused on security boundaries and business rules; trivial CRUD and Blade rendering are covered indirectly.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Assumptions and trade-offs
+- One timezone (`APP_TIMEZONE`); no public holidays.
+- SLA clock does not pause while waiting for the customer.
+- Keyword search uses `LIKE` (clear and testable); I would move to full-text/Scout for large data.
+- Agents can see all tickets but may only act on tickets assigned to them (or accept unassigned ones).
+- Uploaded files are validated by content type and stored on the private disk.
 
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## With more time
+SLA pause states, holidays, per-category SLA, Redis + Horizon, full-text search, virus-scanning uploads, rate limiting, UI notifications centre, soft deletes.
