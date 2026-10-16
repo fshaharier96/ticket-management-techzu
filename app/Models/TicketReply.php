@@ -20,6 +20,7 @@ class TicketReply extends Model
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
     public function attachments(): HasMany { return $this->hasMany(Attachment::class); }
 
+    /** Replies customers are allowed to see. */
     public function scopePublic(Builder $q): Builder
     {
         return $q->where('is_internal', false);

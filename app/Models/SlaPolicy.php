@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class SlaPolicy extends Model
 {
-     protected $fillable = ['priority', 'resolution_minutes'];
+    protected $fillable = ['priority', 'resolution_minutes'];
 }

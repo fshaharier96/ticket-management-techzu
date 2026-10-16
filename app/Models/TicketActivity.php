@@ -16,8 +16,9 @@ class TicketActivity extends Model
     public const REPLIED = 'replied';
     public const NOTE_ADDED = 'note_added';
     public const ATTACHMENT_ADDED = 'attachment_added';
-    public const ESCALATED = 'escalated';
+    public const SLA_APPROACHING = 'sla_approaching';
     public const SLA_BREACHED = 'sla_breached';
+    public const ESCALATED = 'escalated';
 
     protected $fillable = ['ticket_id', 'user_id', 'type', 'old_value', 'new_value', 'meta'];
 
@@ -29,20 +30,22 @@ class TicketActivity extends Model
     public function ticket(): BelongsTo { return $this->belongsTo(Ticket::class); }
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
 
+    /** Human readable line for the timeline. */
     public function description(): string
     {
         $who = $this->user?->name ?? 'System';
 
         return match ($this->type) {
             self::CREATED => "Ticket created by {$who}",
-            self::ASSIGNED => "Assigned to {$this->new_value}" . ($this->old_value ? " (was {$this->old_value})" : ''),
-            self::PRIORITY_CHANGED => "Priority changed from {$this->old_value} to {$this->new_value}",
-            self::STATUS_CHANGED => "Status changed from {$this->old_value} to {$this->new_value}",
+            self::ASSIGNED => "Assigned to {$this->new_value}" . ($this->old_value ? " (was {$this->old_value})" : '') . " by {$who}",
+            self::PRIORITY_CHANGED => "Priority changed from {$this->old_value} to {$this->new_value} by {$who}",
+            self::STATUS_CHANGED => "Status changed from {$this->old_value} to {$this->new_value} by {$who}",
             self::REPLIED => "{$who} replied",
             self::NOTE_ADDED => "{$who} added an internal note",
-            self::ATTACHMENT_ADDED => "{$who} attached a file",
-            self::ESCALATED => 'Ticket escalated',
+            self::ATTACHMENT_ADDED => "{$who} attached file(s)",
+            self::SLA_APPROACHING => 'SLA is approaching its deadline',
             self::SLA_BREACHED => 'SLA breached',
+            self::ESCALATED => 'Ticket escalated',
             default => $this->type,
         };
     }
