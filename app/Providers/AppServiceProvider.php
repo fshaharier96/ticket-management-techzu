@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Listeners\TicketNotificationSubscriber;
 use App\Services\Sla\BusinessHoursCalculator;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
