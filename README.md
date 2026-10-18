@@ -7,9 +7,11 @@
 4. Create database named `ticket_management`
 5. `php artisan migrate:fresh --seed`
 6. Run: `php artisan serve`, `php artisan queue:work`, `php artisan schedule:work`
-7. Tests: create a `ticket_system_test` database, then `php artisan test`
+7. Tests: create a `ticket_management_test` database, then `php artisan test`
 
-Seeded users (password `password`): admin@example.com, agent1@example.com, agent2@example.com, customer1@example.com, customer2@example.com
+ 
+Seeded users : admin@example.com, agent1@example.com, agent2@example.com, customer1@example.com, customer2@example.com
+Seeded password: `password`
 
 ## Features
 Ticket CRUD · yearly ticket numbers (TKT-2026-000001) · Admin/Agent/Customer roles · manual + automatic assignment ·
